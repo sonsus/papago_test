@@ -17,8 +17,7 @@ config = {
     'beamsize': 1, # beamsize>=1, int (==1: greedy search )
 
     ##checkpoint loading / saving
-    'ckpt_path': 'model/trained_models/',
-    'pretrained_ep': -1,
+    'ckpt_path': 'trained_models/',
     'save_every': 4,  #epochs, int
 
     ##hyperparams

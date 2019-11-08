@@ -11,9 +11,8 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from utils import *
-#from metric import Ngram -> need fix
-from eval import get_eval, evaluate
-from
+from metrics import Ngram 
+from eval import get_eval, runeval
 
 from pprint import pprint
 
@@ -21,7 +20,9 @@ from pdb import set_trace()
 
 def get_trainer(args, model_, loss_fn, optimizer):
     def update_model(trainer, batch):
-        model.train()
+        model_.train()
+        args._training =  model_.training
+
         optimizer.zero_grad()
         batch = prep_batch(batch)
         if args.model in ["rnnsearch", "seq2seq"]:
@@ -41,8 +42,8 @@ def get_trainer(args, model_, loss_fn, optimizer):
 
     trainer = Engine(update_model)
     metrics = {
-        'loss': Loss(loss_fn, output_transform= lambda x: x[0], x[1])
-        #'ngrams': Ngram(args, )
+        'loss': Loss(loss_fn, output_transform= lambda x: x[0], x[1]),
+        'ngrams': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x[0], x[1])),
     }
 
 
@@ -53,7 +54,7 @@ def runtrain(args):
         its = load_data(args)
         model_ = get_model(args)
     loss_fn = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
-    optimizer = get_optims(args, models)
+    optimizer = get_optims(args, model_)
 
     if args.lrschedule=='rop':
         scheduler = get_scheduler(args, optimizer)
@@ -77,3 +78,8 @@ def runtrain(args):
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate_epoch(engine):
         log_results(logger, 'train/epoch', engine.state, engine.state.epoch)
+        evalstate = runeval(evaluator, its['val'])
+        log_results(logger, 'val/epoch', evaluator.state, engine.state.epoch)
+
+        if engine.state.epoch % args.save_every==0 and engine.epoch>0:
+            save_ckpt(args, model_, None, engine.state.epoch, evalstate.metrics['loss'])

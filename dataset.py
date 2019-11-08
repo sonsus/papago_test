@@ -2,10 +2,9 @@ import torchtext
 #from torchtext.datasets import TranslationDataset
 from torchtext.data import Dataset, Iterator, Field, TabularDataset
 from pathlib import Path
-from copy import deepcopy
+from config import *
 
 from pdb import set_trace
-from config import *
 
 
 '''def tokenizer(x):
