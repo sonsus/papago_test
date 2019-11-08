@@ -13,7 +13,8 @@ from torch.optim import Adam
 from utils import *
 from metrics import Ngram
 from eval import get_eval, runeval
-
+from optims import get_optims
+from losses import get_loss
 from pprint import pprint
 
 from pdb import set_trace
@@ -32,7 +33,7 @@ def get_trainer(args, model_, loss_fn, optimizer):
             print("masks needs to be implemented here")
         else: # do not reach here
             exit(f"shouldn\'t reach {args}")
-        loss = loss_fn(y_pred, batch.trg)
+        loss = loss_fn(y_pred, batch.trg )
         loss.backward()
         if args.model in ['seq2seq', 'rnnsearch']:
             nn.utils.clip_grad_norm_(model_.parameters(), 1) # clip gradient
@@ -45,6 +46,10 @@ def get_trainer(args, model_, loss_fn, optimizer):
         'loss': Loss(loss_fn, output_transform= lambda x: (x[0], x[1]) ),
         'ngrams': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x[0], x[1]) ),
     }
+    for n, metric in metrics.items():
+        metric.attach(trainer, n)
+
+    return trainer
 
 
 def runtrain(args):
@@ -53,7 +58,7 @@ def runtrain(args):
     else:
         its = load_data(args)
         model_ = get_model(args)
-    loss_fn = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
+    loss_fn = get_loss(ignore_index=PAD_TOKEN)
     optimizer = get_optims(args, model_)
 
     if args.lrschedule=='rop':
@@ -77,9 +82,14 @@ def runtrain(args):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate_epoch(engine):
+        print(f"epoch: {engine.state.epoch}  completed")
         log_results(logger, 'train/epoch', engine.state, engine.state.epoch)
         evalstate = runeval(evaluator, its['val'])
         log_results(logger, 'val/epoch', evaluator.state, engine.state.epoch)
 
         if engine.state.epoch % args.save_every==0 and engine.epoch>0:
             save_ckpt(args, model_, None, engine.state.epoch, evalstate.metrics['loss'])
+
+    trainer.run(its['val'] if args.debug else its['train'],
+                max_epochs=args.max_epochs)
+                

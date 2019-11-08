@@ -13,14 +13,14 @@ def get_eval(args, model, loss_fn):
 
         batch = prep_batch(args, batch)
         with torch.no_grad():
-            if args.model_name in ['rnnsearch', 'seq2seq']:
+            if args.model in ['rnnsearch', 'seq2seq']:
                 y_pred = model(batch.src, batch.trg)
                 y_pred = y_pred
-                results = model.inference(batch.premise, merged_hs, beamsize= args.beamsize)
+                results = model.inference(batch.src, beamsize= args.beamsize)
 
-            elif args.model_name == 'transformers':
-                y_pred = model(batch.premise, batch.true_h, tgt_mask=trg_mask)
-                results  = model.inference(batch.premise, merged_hs, merged_mask=merged_mask) # beamsearch not implemented
+            elif args.model == 'transformers':
+                y_pred = model(batch.src, batch.trg, tgt_mask=trg_mask)
+                results  = model.inference(batch.src, merged_hs, merged_mask=merged_mask) # beamsearch not implemented
 
             else:
                 """not impl"""

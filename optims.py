@@ -2,10 +2,10 @@ from torch.optim.optimizer  import Optimizer
 from torch.optim import Adam
 
 def get_optims(args, model):
-    if lr_schedule == 'noam':
+    if args.lrschedule == 'noam':
         optim = NoamOpt.resolve_args(args, model.parameters())
     else:
-        optim = AdamOpt.resolve_args(args, model.parameters())
+        optim = Adam(model.parameters(), lr=args.learning_rate )#AdamOpt.resolve_args(args, model.parameters())
     return optim
 
 
@@ -56,20 +56,21 @@ class NoamOpt(Adam):
         options['eps'] = args.get('eps', 1e-9)
 
         options['model_size'] = args.get("d_model", 512 )
-        options['factor'] = args.get("factor", 1)
+        options['factor'] = args.get("factor_tr", 1)
         options['warmup'] = args.get("warmup", 4000)
 
         return cls(params, **options)
 
 
+'''
 class AdamOpt(Adam):
     @classmethod
     def resolve_args(cls, args, params):
         options = {}
         options['lr'] = args.get("learning_rate", 0.01)
         options['weight_decay'] = args.get("weight_decay", 0)
-        options['lr_decay'] = args.get("lr_decay", 0)
         options['betas'] = args.get("betas", (0.9, 0.999))
-        options['eps'] = args.get("eps", 1e-08)
+        options['eps'] = args.get("eps", 1e-8)
 
         return cls(params, **options)
+'''

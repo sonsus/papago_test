@@ -1,6 +1,8 @@
 ###modified from https://github.com/MaximumEntropy/Seq2Seq-PyTorch/blob/master/beam_search.py
 ### which also being originated from openNMT implementation
 
+
+#teletype test
 """Decode Seq2Seq model with beam search."""
 import torch
 import torch.nn as nn
@@ -13,7 +15,7 @@ from config import *
 class Beam(object):
     """Ordered beam of candidate outputs."""
 
-    def __init__(self, size, vocab, cuda=False):
+    def __init__(self, size, vocab=None, cuda=False):
         """Initialize params."""
         self.size = size
         self.done = False

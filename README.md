@@ -15,3 +15,5 @@
 * [ ] main.py: eval routine
 * [ ] metrics.py: Length_measure
     - * [ ] length stats of original dataset
+    - * [ ] end stats of trg, src
+* [ ] (if beamsearch even cannot learn to expand ==> EOS, dup heuristics )

@@ -28,21 +28,39 @@ def load_data(args):
                     )
     splts = ['train', 'val', 'test']
 
-    train, val, test = TabularDataset.splits(path = Path(args.dataroot),
-                                                format = 'json',
-                                                train='train.jsonl', validation='val.jsonl', test='test.jsonl',
-                                                fields ={
-                                                    'src': ('src', src),
-                                                    'trg': ('trg', trg)
-                                                } )
+    if args.debug:
+        train, val, test = TabularDataset.splits(path = Path(args.dataroot),
+                                                    format = 'json',
+                                                    train='val.jsonl', validation='val.jsonl', test='val.jsonl',
+                                                    fields ={
+                                                        'src': ('src', src),
+                                                        'trg': ('trg', trg)
+                                                    } )
 
-    iterators_splts = Iterator.splits(
-                                        (train,val,test),
-                                        batch_size=args.batchsize,
-                                        device= args.device,
-                                        sort_within_batch=True,
-                                        sort_key=lambda x: len(x.trg),
-                                        shuffle=args._training,
-                                        )
+        iterators_splts = Iterator.splits(
+                                            (train,val,test),
+                                            batch_size=args.batchsize,
+                                            device= args.device,
+                                            sort_within_batch=True,
+                                            sort_key=lambda x: len(x.trg),
+                                            shuffle=args._training,
+                                            )
+    else:
+        train, val, test = TabularDataset.splits(path = Path(args.dataroot),
+                                                    format = 'json',
+                                                    train='train.jsonl', validation='val.jsonl', test='test.jsonl',
+                                                    fields ={
+                                                        'src': ('src', src),
+                                                        'trg': ('trg', trg)
+                                                    } )
+
+        iterators_splts = Iterator.splits(
+                                            (train,val,test),
+                                            batch_size=args.batchsize,
+                                            device= args.device,
+                                            sort_within_batch=True,
+                                            sort_key=lambda x: len(x.trg),
+                                            shuffle=args._training,
+                                            )
 
     return dict(zip(splts, iterators_splts))

@@ -5,6 +5,9 @@ import torch.nn.functional as F
 
 from config import *
 from beam_module import Beam
+from utils import *
+
+from pdb import set_trace
 
 def get_model(args):
     if args.model in ['rnnsearch', 'seq2seq']:
@@ -13,7 +16,7 @@ def get_model(args):
         mdl = Transformer(d_model=args.hidden_size) # default_settings
         print("layernorm, positional encoding needed")
         set_trace()
-    return mdl
+    return mdl.to(args.device)
 
 
 ## when args.model in ['seq2seq', 'rnnsearch']
@@ -31,11 +34,13 @@ class Seq2Seq(nn.Module):
         self.decoder = dmod(self.args, self.vocabsize, self.hidden_size, emb)
 
     def forward(self, src, trg):
-        return self.decoder(trg, self.encoder(src))
+        enc_out, hn = self.encoder(src)
+        return self.decoder(trg, hn, enc_outputs = enc_out)[0] # [1] == hn
 
-    def inference(self, src):
-        greedyresults = self.decoder.greedy(self.encoder(src))
-        beamresults =  self.decoder.beamsearch(self.encoder(src)) # 2nd output (= _ ) is beamsearched scores
+    def inference(self, src, beamsize=1):
+        enc_output, hn = self.encoder(src)
+        greedyresults = self.decoder.greedy(hn, enc_outputs = enc_output)
+        beamresults =  self.decoder.beamsearch(hn, enc_outputs = enc_output, beamsize=self.args.beamsize)
         set_trace()
         print(beamresults);print(greedyresults)
         #''
@@ -48,22 +53,29 @@ class Decoder(nn.Module):
     def __init__(self, args, **kwargs):
         super().__init__()
         self.args = args
-    def greedy(self, hidden, enc_outputs=None, maxlen=100):
-        bsz, srclen, hid2 = list(enc_outputs.shape)
-        hid = hid2//2
-        maxlen = int(srclen*1.5)
 
-        output = SOS_TOKEN*torch.ones(bsz).long().to(self.args.device)
+    def greedy(self, hidden, enc_outputs=None, maxlen=100):
+        if enc_outputs is not None:
+            bsz, srclen, hid2 = list(enc_outputs.shape)
+            hid = hid2//2
+            maxlen = int(srclen*1.5)
+        else:
+            _, bsz, hid = list(hidden.shape)
+
+        output = SOS_TOKEN*torch.ones(bsz).long().to(self.args.device).unsqueeze(1)
         genidxs = PAD_TOKEN*torch.ones(bsz, maxlen).long().to(self.args.device)
         for t in range(maxlen):
-            output, hidden = self.decoder(output, hidden, enc_outputs=enc_outputs)
-            genidxs[t] = output.argmax(dim=1)
-            if (genidxs[t]==PAD_TOKEN).all():
+            #self.rnn == decoder's rnn
+            output, hidden = self.forward(output, hidden, enc_outputs=enc_outputs)
+            output = output.squeeze().argmax(dim=1)
+            genidxs[:, t] = output
+            output= output.unsqueeze(1) # bsz, 1
+            if (genidxs[:, t]==PAD_TOKEN).all():
                 genidxs = genidxs[:,:t+1]
                 break
 
         lens = (genidxs!=PAD_TOKEN).sum(dim=1)
-        lens = [e.item() for e in len]
+        lens = [e.item() for e in lens]
 
         res = {
             'sentidxs': genidxs,
@@ -72,41 +84,41 @@ class Decoder(nn.Module):
         return res
 
     #### modified from https://github.com/MaximumEntropy/Seq2Seq-PyTorch/blob/master/decode.py
-    def beamserach(self, hidden, enc_outputs=None, maxlen=100, beamsize=4):
+    def beamsearch(self, hidden, enc_outputs=None, maxlen=100, beamsize=4):
         if enc_outputs is not None:
             bsz, srclen, hidsz = enc_outputs.shape
             enc_outputs = enc_outputs.repeat(beamsize, 1, 1)
             maxlen = int(1.5*srclen)
 
         ##make hidden batch_first => later seq first
-        hidden= hidden.transpose(1,0)
-        bsz, _, hidsz = list(hidden.shape)
+        #hidden= hidden.transpose(1,0)
+        _, bsz, hidsz = list(hidden.shape)
 
-        hidden = hidden.repeat(beamsize, 1, 1)
+        hidden = hidden.repeat(1, beamsize, 1)
 
-        beams = [Beam(beamsize, cuda=True) for i in range(beamsize)]
+        beams = [Beam(beamsize, cuda=True) for i in range(bsz)]
 
         batch_idx = list(range(bsz))
+        remainingsents = bsz
 
         for i in range(maxlen):
-            ins = torch.stack([b.get_current_state() for b in beams if not b.done]).unsqueeze(1) # n_active, 1
-            out, hidden = self.decoder(ins, hidden, enc_outputs=enc_outputs) #bsz, 1, hid / 1, bsz, hid
-            hidden.transpose_(0,1) # batch_first
+            ins = torch.stack([b.get_current_state() for b in beams if not b.done]).view(-1, 1) # remaining, beam  --> remaining*beam , 1
+            out, hidden = self.forward(ins, hidden, enc_outputs=enc_outputs) #remaining*beam, 1, hid / 1, remaining*beam, hid
 
             wordlk=out.view(remainingsents, beamsize, -1).contiguous()
             active = []
             for b in range(bsz):
-                if beam[b].done:
+                if beams[b].done:
                     continue
                 idx = batch_idx[b]
-                if not beam[b].advance(wordlk.clone()[idx]):
+                if not beams[b].advance(wordlk.clone()[idx]):
                     active.append(b)
 
                 _hidden = hidden.view(-1 ,beamsize, remainingsents, hidsz)[:,:,idx]
 
                 ###below will update hidden and _hidden (chgs in _hidden will appear on hidden too)
                 _hidden.data.copy_(
-                    _hidden.index_select(1, beam[b].get_current_origin() )
+                    _hidden.index_select(1, beams[b].get_current_origin() )
                 )
             if not active:
                 break
@@ -125,7 +137,7 @@ class Decoder(nn.Module):
 
             hidden = update_active(hidden) #[remaining, beam, hid]
             #trg_h = update_active(trg_h) # [1, beam*bsz, hid]
-            #if len(active_idx) < batch_size:
+            #if len(active_idx) < batchsize:
             #    set_trace()
             enc_outputs = update_active(enc_outputs)
 
@@ -136,11 +148,11 @@ class Decoder(nn.Module):
         allhyps, allScores = [], []
         n_best = 1
 
-        for b in range(batch_size):
-            scores, ks = beam[b].sort_best()
+        for b in range(bsz):
+            scores, ks = beams[b].sort_best()
 
             allScores += [scores[:n_best]]
-            hyps = [beam[b].get_hyp(k) for k in ks[:n_best]] #zip(*[beam[b].get_hyp(k) for k in ks[:n_best]])
+            hyps = [beams[b].get_hyp(k) for k in ks[:n_best]] #zip(*[beam[b].get_hyp(k) for k in ks[:n_best]])
             allhyps += [hyps]
         allhyps_, lenslist = beamsearch2tensorlist(self.args, allhyps)
 
@@ -164,26 +176,26 @@ class RNNEnc(nn.Module):
         x = self.emb(src)
         batchsize = src.shape[0]
         hidden_size = x.shape[-1]
-        h0 = torch.zeros(1, batchsize, hidden_size).to(args.device) # bidrectional 2
+        h0 = torch.zeros(1, batchsize, hidden_size).to(self.args.device) # bidrectional 2
         enc_outputs, hn = self.rnn(x, h0)
-        return hn
+        return None, hn
 
 class RNNDec(Decoder):
     def __init__(self, args, vocabsize, hid, emb, **kwargs):
-        super().__init__()
+        super().__init__(args)
         self.args = args
         self.emb = emb #from Enc
         self.to_onehot = nn.Linear(hid, vocabsize)
         self.rnn = nn.GRU(hid, hid, num_layers=1, batch_first=True)
 
     def forward(self, trg, hn, enc_outputs=None):
-        x = self.emb(trg)
+        x = self.emb(trg) # bsz, 1, hid
         batchsize = trg.shape[0]
         hidden_size = hn.shape[-1]
         #h0 = torch.zeros(1, batchsize, hidden_size).to(args.device) # bidrectional 2
         hids, hn = self.rnn(x, hn)
         logits = self.to_onehot(hids)
-        return logits
+        return logits, hn
 
 
 ##RNNSEARCH
@@ -204,12 +216,12 @@ class RNNSearchEnc(nn.Module):
         x = self.emb(src)
         batchsize = src.shape[0]
         hidden_size = x.shape[-1]
-        h0 = torch.zeros(2, batchsize, hidden_size).to(args.device) # bidrectional 2
+        h0 = torch.zeros(2, batchsize, hidden_size).to(self.args.device) # bidrectional 2
         return self.rnn(x, h0)
 
 class RNNSearchDec(Decoder):
     def __init__(self, args, vocabsize, hid, emb, **kwargs):
-        super().__init__()
+        super().__init__(args)
         self.args = args
         self.emb = emb # from encoder
         self.to_onehot = nn.Linear(hid, vocabsize)
@@ -227,7 +239,7 @@ class RNNSearchDec(Decoder):
         x = self.emb(trg) # bsz, trglen, hid
         rnnin = torch.cat((x, context), dim=2) # bsz, trglen, hid
 
-        h0 = torch.zeros(1, bsz, hid).to(args.device)
+        h0 = torch.zeros(1, bsz, hid).to(self.args.device)
         hids = self.rnn(rnnin, h0)
         logits = self.to_onehot(hids)
         return logits

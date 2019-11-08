@@ -6,6 +6,7 @@ from tensorboardX import SummaryWriter
 import tensorflow as tf
 from typing import Dict, List
 from utils import *
+from pathlib import Path
 
 
 class Logger:
@@ -13,11 +14,11 @@ class Logger:
         self.log_cmd = args.log_cmd
         log_name = get_dirname_from_args(args) + f"_{get_now()}"
         logdir = str(args.log_path / log_name)
-        if str(args.nlg_path)==str(args.nlu_path) and str(args.nlg_path)=="DBG":
-            logdir = 'log/DBG'
+        if args.debug:
+            logdir = Path('log/DBG')
         args.log_path = logdir
         os.makedirs(logdir, exist_ok=True)
-        self.tfboard = SummaryWriter(logdir)
+        self.tfboard = SummaryWriter(str(logdir))
 
     def __call__(self, name, val, n_iter):
         self.tfboard.add_scalar(name, val, n_iter)

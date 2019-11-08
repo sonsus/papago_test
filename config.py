@@ -8,20 +8,21 @@ EOS_TOKEN = 661
 
 config = {
 
-
+    'debug': False,
     ##general
     'model': "seq2seq", #"seq2seq", "transformer"
     'dataroot': 'data',
     'max_epochs': 50,
-
-    'beamsize': 1, # beamsize>=1, int (==1: greedy search )
+    'pretrained_ep': -1,
+    'beamsize': 4, # beamsize>=1, int (==1: greedy search )
 
     ##checkpoint loading / saving
     'ckpt_path': 'trained_models/',
     'save_every': 4,  #epochs, int
 
+
     ##hyperparams
-    'batchsize': 32,
+    'batchsize': 48,
     'dropout': 0.5,
 
     'metrics': ['bleu', 'meteor', 'cider', 'rouge'],
@@ -29,10 +30,12 @@ config = {
 
     ###lr scheduler (ReduceLROnPlateau)
     'learning_rate': 0.001,
+    'optimizer': 'adam', #now just for exp naming
+    #'lr_decay': 0,
 
     'lrschedule': 'rop', #noam
     #reduce on plateau
-    'gamma': 0.5,
+    'factor': 0.5,
     'patience': 2,
     'mode': 'min',
     'threshold':1e-3,
@@ -41,7 +44,7 @@ config = {
     'eps':1e-8,
     #noam
     'warmup': 4000,
-    'factor': 2,
+    'factor_tr': 2,
     'lr_tr': 0, #this lr is learning rate for NoamOpt.
 
     ###--modelwise args--###
@@ -64,6 +67,7 @@ config = {
     ## logger
     'log_path': './log',
     'device': 'cuda',
+    'log_cmd': False,
     #'shots_only': True,
 
     ## modes (DO NOT manipulate this manually: cli.py takes care of this)
