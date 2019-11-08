@@ -66,7 +66,7 @@ class Decoder(nn.Module):
         lens = [e.item() for e in len]
 
         res = {
-            'sentidxs': genidxs
+            'sentidxs': genidxs,
             'lens': len
         }
         return res
@@ -168,7 +168,7 @@ class RNNEnc(nn.Module):
         enc_outputs, hn = self.rnn(x, h0)
         return hn
 
-class RNNDec(nn.Module, Decoder):
+class RNNDec(Decoder):
     def __init__(self, args, vocabsize, hid, emb, **kwargs):
         super().__init__()
         self.args = args
@@ -207,7 +207,7 @@ class RNNSearchEnc(nn.Module):
         h0 = torch.zeros(2, batchsize, hidden_size).to(args.device) # bidrectional 2
         return self.rnn(x, h0)
 
-class RNNSearchDec(nn.Module, Decoder):
+class RNNSearchDec(Decoder):
     def __init__(self, args, vocabsize, hid, emb, **kwargs):
         super().__init__()
         self.args = args

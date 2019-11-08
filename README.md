@@ -11,7 +11,7 @@
 - relative positional embedding 논문 NAACL 2018
 
 3. to-do
-[] debug and run rnnsearch and seq2seq with various settings
-[] main.py: eval routine
-[] metrics.py: Length_measure
-    - [] length stats of original dataset
+* [ ] debug and run rnnsearch and seq2seq with various settings
+* [ ] main.py: eval routine
+* [ ] metrics.py: Length_measure
+    - * [ ] length stats of original dataset

@@ -1,11 +1,11 @@
 ## from https://github.com/skaro94/vtt_qa_pipeline/
 from collections import defaultdict
 
-from .pycocoevalcap.tokenizer.ptbtokenizer import PTBTokenizer
-from .pycocoevalcap.bleu.bleu import Bleu
-from .pycocoevalcap.meteor.meteor import Meteor
-from .pycocoevalcap.rouge.rouge import Rouge
-from .pycocoevalcap.cider.cider import Cider
+from pycocoevalcap.tokenizer.ptbtokenizer import PTBTokenizer
+from pycocoevalcap.bleu.bleu import Bleu
+from pycocoevalcap.meteor.meteor import Meteor
+from pycocoevalcap.rouge.rouge import Rouge
+from pycocoevalcap.cider.cider import Cider
 
 from ignite.metrics.metric import Metric
 from ignite.exceptions import NotComputableError

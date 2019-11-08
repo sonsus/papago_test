@@ -11,12 +11,12 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from utils import *
-from metrics import Ngram 
+from metrics import Ngram
 from eval import get_eval, runeval
 
 from pprint import pprint
 
-from pdb import set_trace()
+from pdb import set_trace
 
 def get_trainer(args, model_, loss_fn, optimizer):
     def update_model(trainer, batch):
@@ -24,7 +24,7 @@ def get_trainer(args, model_, loss_fn, optimizer):
         args._training =  model_.training
 
         optimizer.zero_grad()
-        batch = prep_batch(batch)
+        batch = prep_batch(args, batch)
         if args.model in ["rnnsearch", "seq2seq"]:
             y_pred = model_(batch.src, batch.trg)
         elif args.model == 'transformer':
@@ -42,8 +42,8 @@ def get_trainer(args, model_, loss_fn, optimizer):
 
     trainer = Engine(update_model)
     metrics = {
-        'loss': Loss(loss_fn, output_transform= lambda x: x[0], x[1]),
-        'ngrams': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x[0], x[1])),
+        'loss': Loss(loss_fn, output_transform= lambda x: (x[0], x[1]) ),
+        'ngrams': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x[0], x[1]) ),
     }
 
 

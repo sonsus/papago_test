@@ -7,7 +7,7 @@ from pprint import pprint
 from fire import Fire
 
 from train import runtrain
-from evaluate import runeval
+from eval import runeval
 
 
 from pdb import set_trace
@@ -20,8 +20,8 @@ class Main:
     def _default_args(self, **kwargs):
         args = self.defaults
         args.update(kwargs)
-        args = resolve_paths(args)
-        args = resolve_device(args)
+        resolve_paths(args)
+        resolve_device(args)
         args = Munch(args)
         return args
 
@@ -32,7 +32,7 @@ class Main:
         for name in ["train", "val", "test"]:
             print(name)
             for i,e in enumerate(its[name]):
-                batch = prep_batch(e)
+                batch = prep_batch(args, e)
                 print(batch)
 
         set_trace()
@@ -51,6 +51,8 @@ def resolve_paths(args):
     for key in args.keys():
         if key[-4:]=='root' or key[-4:]=='path':
             args[key]=Path(args[key])
+
+
 def resolve_device(args):
     for key in args.keys():
         if key=='device':

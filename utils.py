@@ -39,7 +39,7 @@ def to_string(vocab, x): # greedy
         sent = x[i]
         li = []
         for j in sent:
-            if vocab[j] not [SOS_TOKEN, EOS_TOKEN, PAD_TOKEN]:
+            if vocab[j] not in [SOS_TOKEN, EOS_TOKEN, PAD_TOKEN]:
                 li.append(vocab[j])
             #if vocab.itos[j] not in vocab.specials:
                 #li.append(vocab.itos[j])
