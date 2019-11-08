@@ -26,3 +26,6 @@
 * [X] word_drop:
 * [ ] label_smoothing
 * [ ] Transformer 일단 쓰던 코드로 써보자...
+
+* [ ] main.py: eval routine
+* [ ] set-up guide!
