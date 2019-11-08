@@ -21,6 +21,7 @@
 * [ ] debug rnnsearch
 * [ ] metrics.py:
     - * [ ] length stats of original dataset: done
+    - * [X] pycocoevalcap 붙임
     - * [X] stats of trg, src -> data/len.py 에 주석으로 적혀있다
 * [X] beamsearch: @MaximumEntropy 에게서 가져와서 고쳐씀
 * [X] word_drop:
