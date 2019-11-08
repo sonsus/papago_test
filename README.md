@@ -1,21 +1,21 @@
 # papago_test
 * [X] git config 바꿨으니까 이제 이름이 제대로 올라가겠지...?
 
-0. 너무 low resource 라서... 근데 그냥 아는 알고리즘들로 해보자
+## 0. 너무 low resource 라서... 근데 그냥 아는 알고리즘들로 해보자
 - Revisiting Low-Resource Neural Machine Translation:A Case Study
 - 에서는 hyper parameter tuning의 효과랑 label smoothing 효과를 봤다더라
     (... 처음에 아는 알고리즘들에 이것저것 붙여서 결과뽑자고 너무 쉽게 생각했다)
-1. seq2seq, rnnsearch, ~~transformer 정도(시간나면 추가)~~ 만 만들어서 실험돌려보자
+## 1. seq2seq, rnnsearch, ~~transformer 정도(시간나면 추가)~~ 만 만들어서 실험돌려보자
 - platform 만들고 메트릭 만들고 beamsearch 만들면 내일 끝날듯?
 - 그러면 내일 저녁부터는 실험걸어놓는거지...
 - 그 중에 제일 좋아보이는 걸로 최종본 내면 되겠다
 
-2. 최대한 서치 범위를 줄여야하므로
+## 2. 최대한 서치 범위를 줄여야하므로
 - learning rate 부터 건드려봄
 - layer는 하나로만(rnns)
 
 
-3. to-do
+## 3. to-do
 * [X] seq2seq
 * [ ] debug rnnsearch
 * [ ] metrics.py:
