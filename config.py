@@ -10,7 +10,7 @@ config = {
 
     'debug': False,
     ##general
-    'model': "seq2seq", #"seq2seq", "transformer"
+    'model': "seq2seq", #"transformer", "transformer"
     'dataroot': 'data',
     'max_epochs': 50,
     'pretrained_ep': -1,
@@ -22,8 +22,9 @@ config = {
 
 
     ##hyperparams
-    'batchsize': 48,
-    'dropout': 0.5,
+    'batchsize': 128,
+    'dropout': 0.3,
+    'word_drop': 0.05,
 
     'metrics': ['bleu', 'meteor', 'cider', 'rouge'],
 
@@ -38,7 +39,7 @@ config = {
     'factor': 0.5,
     'patience': 2,
     'mode': 'min',
-    'threshold':1e-3,
+    'threshold':5e-4,
     'threshold_mode': 'rel',
     'min_lr':1e-7,
     'eps':1e-8,

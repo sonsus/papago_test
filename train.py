@@ -15,6 +15,8 @@ from metrics import Ngram
 from eval import get_eval, runeval
 from optims import get_optims
 from losses import get_loss
+from ckpt import *
+
 from pprint import pprint
 
 from pdb import set_trace
@@ -54,12 +56,16 @@ def get_trainer(args, model_, loss_fn, optimizer):
 
 def runtrain(args):
     if args.pretrained_ep>=1:
-        print("not implemented")#args, model = get_model_ckpt(args)
+        saved_dict = get_model_ckpt(args)
+        its= saved_dict['its']
+        model_ = saved_dict['model']
+        optimizer = saved_dict['optimizer']
     else:
         its = load_data(args)
         model_ = get_model(args)
+        optimizer = get_optims(args, model_)
+
     loss_fn = get_loss(ignore_index=PAD_TOKEN)
-    optimizer = get_optims(args, model_)
 
     if args.lrschedule=='rop':
         scheduler = get_scheduler(args, optimizer)
@@ -82,14 +88,17 @@ def runtrain(args):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate_epoch(engine):
-        print(f"epoch: {engine.state.epoch}  completed")
+        log_lr(logger, 'ep-lr', optimizer, engine.state.epoch)
         log_results(logger, 'train/epoch', engine.state, engine.state.epoch)
         evalstate = runeval(evaluator, its['val'])
         log_results(logger, 'val/epoch', evaluator.state, engine.state.epoch)
 
-        if engine.state.epoch % args.save_every==0 and engine.epoch>0:
-            save_ckpt(args, model_, None, engine.state.epoch, evalstate.metrics['loss'])
+        print(f"epoch: {engine.state.epoch}  completed")
+        print(f"greedy: {evaluator.state.output['infer']['greedy']['sentidxs'][0]}")
+        print(f"beam: {evaluator.state.output['infer']['beam']['sentidxs'][0]}")
+
+        if engine.state.epoch % args.save_every==0 and engine.state.epoch>0:
+            save_ckpt(args, model_, None, engine.state.epoch, evalstate.metrics['loss'], optimizer=optimizer)
 
     trainer.run(its['val'] if args.debug else its['train'],
                 max_epochs=args.max_epochs)
-                

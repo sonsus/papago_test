@@ -1,8 +1,35 @@
 from time import time
 from datetime import datetime
 import torch
+import torch.nn.functional as F
 from contextlib import contextmanager
+#from copy import deepcopy
 from config import *
+from pdb import set_trace
+
+def word_drop(args, batch):
+    if args.word_drop>0:
+        bsz = batch.src.shape[0]
+        len_s = batch.src.shape[1]
+        len_t = batch.trg.shape[1]
+
+
+        batch.src = batch.src.float()
+        batch.trg = batch.trg.float()
+        for i in range(bsz):
+
+            s= (batch.src[i]!=PAD_TOKEN).sum().item()
+            t= (batch.trg[i]!=PAD_TOKEN).sum().item()
+            modif_rate_s = args.word_drop * (s/len_s)
+            modif_rate_t = args.word_drop * (t/len_t)
+
+            batch.src[i,:s] = F.dropout(batch.src[i,:s], p=modif_rate_s) * (1-modif_rate_s )
+            batch.trg[i,:t] = F.dropout(batch.trg[i,:t], p=modif_rate_t) * (1-modif_rate_t )
+
+        batch.src= batch.src.long()
+        batch.trg= batch.trg.long()
+
+    return batch
 
 def make_fake_vocab():
     alphabets = 'abcdefghijklmnopqrstuvwxyz'
@@ -16,6 +43,11 @@ def get_now():
 def prep_batch(args, batch):
     batch.src.t_()
     batch.trg.t_()
+    #batch_oldsrc = batch.src.clone()
+    #batch_oldtrg = batch.trg.clone()
+    batch = word_drop(args, batch)
+    #print( (batch_oldsrc!=batch.src).sum().float()/float(batch.src.numel()) )
+    #print( (batch_oldtrg!=batch.trg).sum().float()/float(batch.trg.numel()) )
     return batch
 
 def get_dirname_from_args(args):

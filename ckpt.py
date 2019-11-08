@@ -7,6 +7,8 @@ import torch.nn.functional as F
 from dataset import load_data
 from model import get_model
 from utils import *
+from optims import *
+
 from pathlib import Path, PosixPath
 from pprint import pprint as pp
 import dill
@@ -15,7 +17,7 @@ from pdb import set_trace
 
 
 def get_ckpt_path(args, epoch, loss=0.0000, cut_loss=False):
-    ckpt_name = f"{args.model_name}.{args.nlg_path}"
+    ckpt_name = f"{args.model}"
     path = Path(args.ckpt_path) / ckpt_name / Path(args.log_path).name
 
 
@@ -31,7 +33,7 @@ def get_ckpt_path(args, epoch, loss=0.0000, cut_loss=False):
     return ckptfile
 
 
-def save_ckpt(args, model, vocab, epoch: int, loss: float): # loss here is val loss
+def save_ckpt(args, model, vocab, epoch: int, loss: float, optimizer=None): # loss here is val loss
     print(f'saving epoch {epoch}')
     dt = {
         'args': args,
@@ -39,6 +41,7 @@ def save_ckpt(args, model, vocab, epoch: int, loss: float): # loss here is val l
         'loss': loss,
         'model': model.state_dict(),
         'vocab': vocab,
+        'optimizer': optimizer.state_dict()
     }
 
     ckpt_path = get_ckpt_path(args, epoch, loss)
@@ -71,5 +74,11 @@ def get_model_ckpt(args):
     its = load_data(args)
     model = get_model(args, vocab)
     model.load_state_dict(dt['model'])
+    optimizer = get_optims(args, model)
+    optimizer.load_state_dict(dt['optim_states'])
 
-    return args, model, its, vocab
+    dt['its'] = its
+    dt['optimizer'] = optimizer
+    dt['model'] = model
+
+    return dt

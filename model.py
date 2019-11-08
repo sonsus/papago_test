@@ -41,9 +41,7 @@ class Seq2Seq(nn.Module):
         enc_output, hn = self.encoder(src)
         greedyresults = self.decoder.greedy(hn, enc_outputs = enc_output)
         beamresults =  self.decoder.beamsearch(hn, enc_outputs = enc_output, beamsize=self.args.beamsize)
-        set_trace()
-        print(beamresults);print(greedyresults)
-        #''
+
         res = {'greedy': greedyresults, 'beam': beamresults}
         return res
 
@@ -54,7 +52,8 @@ class Decoder(nn.Module):
         super().__init__()
         self.args = args
 
-    def greedy(self, hidden, enc_outputs=None, maxlen=100):
+
+    def greedy(self, hidden, enc_outputs=None, maxlen=60):
         if enc_outputs is not None:
             bsz, srclen, hid2 = list(enc_outputs.shape)
             hid = hid2//2
@@ -105,7 +104,7 @@ class Decoder(nn.Module):
             ins = torch.stack([b.get_current_state() for b in beams if not b.done]).view(-1, 1) # remaining, beam  --> remaining*beam , 1
             out, hidden = self.forward(ins, hidden, enc_outputs=enc_outputs) #remaining*beam, 1, hid / 1, remaining*beam, hid
 
-            wordlk=out.view(remainingsents, beamsize, -1).contiguous()
+            wordlk=out.view(remainingsents, beamsize, -1)
             active = []
             for b in range(bsz):
                 if beams[b].done:
@@ -114,7 +113,7 @@ class Decoder(nn.Module):
                 if not beams[b].advance(wordlk.clone()[idx]):
                     active.append(b)
 
-                _hidden = hidden.view(-1 ,beamsize, remainingsents, hidsz)[:,:,idx]
+                _hidden = hidden.view(-1 ,beamsize, remainingsents, hidsz)[:,:,idx] #1 remain*beam hid => 1 beam reamin hid [:, :, idx] => 1 beam hid
 
                 ###below will update hidden and _hidden (chgs in _hidden will appear on hidden too)
                 _hidden.data.copy_(
@@ -123,6 +122,8 @@ class Decoder(nn.Module):
             if not active:
                 break
 
+            active_idx =  [batch_idx[i] for i in active]
+            batch_idx = {b: idx for idx, b in enumerate(active)}
             def update_active(t):
                 # select only the remaining active sentences
                 hsz = t.shape[-1]
@@ -133,13 +134,14 @@ class Decoder(nn.Module):
                 new_size = list(t.shape)
                 new_size[-2] = new_size[-2] * len(active_idx) // remainingsents
 
-                return view.index_select(1, active_idx).view(*new_size)
+                return view.index_select(1, torch.cuda.LongTensor(active_idx) ).view(*new_size)
 
             hidden = update_active(hidden) #[remaining, beam, hid]
             #trg_h = update_active(trg_h) # [1, beam*bsz, hid]
             #if len(active_idx) < batchsize:
             #    set_trace()
-            enc_outputs = update_active(enc_outputs)
+            if enc_outputs is not None:
+                enc_outputs = update_active(enc_outputs)
 
             remainingsents = len(active)
 
@@ -169,11 +171,12 @@ class RNNEnc(nn.Module):
     def __init__(self, args, vocabsize, hid, **kwargs):
         super().__init__()
         self.args = args
+        self.dropout = nn.Dropout(args.dropout)
         self.emb = nn.Embedding(vocabsize, hid)
         self.rnn = nn.GRU(hid, hid, num_layers=1, batch_first=True)
 
     def forward(self, src):
-        x = self.emb(src)
+        x = self.dropout(self.emb(src))
         batchsize = src.shape[0]
         hidden_size = x.shape[-1]
         h0 = torch.zeros(1, batchsize, hidden_size).to(self.args.device) # bidrectional 2
@@ -186,10 +189,12 @@ class RNNDec(Decoder):
         self.args = args
         self.emb = emb #from Enc
         self.to_onehot = nn.Linear(hid, vocabsize)
+        self.dropout = nn.Dropout(args.dropout)
         self.rnn = nn.GRU(hid, hid, num_layers=1, batch_first=True)
 
+
     def forward(self, trg, hn, enc_outputs=None):
-        x = self.emb(trg) # bsz, 1, hid
+        x = self.dropout(self.emb(trg)) # bsz, 1, hid
         batchsize = trg.shape[0]
         hidden_size = hn.shape[-1]
         #h0 = torch.zeros(1, batchsize, hidden_size).to(args.device) # bidrectional 2
@@ -206,6 +211,7 @@ class RNNSearchEnc(nn.Module):
         self.args = args
         self.emb = nn.Embedding(vocabsize, hid)
         self.rnn = nn.GRU(hid, hid, num_layers=1, bidirectional=True, batch_first=True)
+        self.dropout = nn.Dropout(args.dropout)
         '''
         the directions can be separated using
         >>> output.view(seq_len, batch, num_directions, hidden_size),
@@ -213,7 +219,7 @@ class RNNSearchEnc(nn.Module):
         '''
 
     def forward(self, src):
-        x = self.emb(src)
+        x = self.dropout(self.emb(src))
         batchsize = src.shape[0]
         hidden_size = x.shape[-1]
         h0 = torch.zeros(2, batchsize, hidden_size).to(self.args.device) # bidrectional 2
@@ -226,7 +232,9 @@ class RNNSearchDec(Decoder):
         self.emb = emb # from encoder
         self.to_onehot = nn.Linear(hid, vocabsize)
         self.rnn = nn.GRU(hid*2, hid, batch_first =True)
-        self.attention = AddAttn(hid, hid)
+        self.attention = AddAttn(args, 2*hid, hid)
+
+        self.dropout = nn.Dropout(args.dropout)
 
     def forward(self, trg, h, enc_outputs=None):
         bsz, srclen, hid = list(enc_outputs.size())
@@ -236,7 +244,7 @@ class RNNSearchDec(Decoder):
         context = enc_outputs * attn.unsqueeze(2) # bsz srclen hid
 
         context = context.sum(dim=1) #bsz 1 hid
-        x = self.emb(trg) # bsz, trglen, hid
+        x = self.dropout(self.emb(trg)) # bsz, trglen, hid
         rnnin = torch.cat((x, context), dim=2) # bsz, trglen, hid
 
         h0 = torch.zeros(1, bsz, hid).to(self.args.device)
@@ -255,7 +263,8 @@ class AddAttn(nn.Module):
         self.v = nn.Linear(self.dec_hid, 1, bias=False)
 
     def forward(self, dec_hidden, enc_outputs):
-        bsz, srclen = enc_outputs.shape[2] #2hid
+        bsz, srclen, hid2 = list(enc_outputs.shape) #bsz srclen 2hid
+        hid = hid2//2
 
         dec_hidden = dec_hidden.repeat(1, srclen, 1) # [bsz, srclen, hid]
 

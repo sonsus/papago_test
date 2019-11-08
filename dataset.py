@@ -31,7 +31,7 @@ def load_data(args):
     if args.debug:
         train, val, test = TabularDataset.splits(path = Path(args.dataroot),
                                                     format = 'json',
-                                                    train='val.jsonl', validation='val.jsonl', test='val.jsonl',
+                                                    train='dbg.jsonl', validation='dbg.jsonl', test='dbg.jsonl',
                                                     fields ={
                                                         'src': ('src', src),
                                                         'trg': ('trg', trg)
@@ -43,7 +43,7 @@ def load_data(args):
                                             device= args.device,
                                             sort_within_batch=True,
                                             sort_key=lambda x: len(x.trg),
-                                            shuffle=args._training,
+                                            shuffle=True,
                                             )
     else:
         train, val, test = TabularDataset.splits(path = Path(args.dataroot),
@@ -60,7 +60,7 @@ def load_data(args):
                                             device= args.device,
                                             sort_within_batch=True,
                                             sort_key=lambda x: len(x.trg),
-                                            shuffle=args._training,
+                                            shuffle=True,
                                             )
 
     return dict(zip(splts, iterators_splts))

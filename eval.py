@@ -50,4 +50,4 @@ def get_eval(args, model, loss_fn):
 
 def runeval(evaluator, iterator):
     evaluator.run(iterator)
-    return evaluator.states
+    return evaluator.state
