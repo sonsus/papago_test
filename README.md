@@ -1,5 +1,5 @@
 # papago_test
-[X] git config 바꿨으니까 이제 이름이 제대로 올라가겠지...?
+* [X] git config 바꿨으니까 이제 이름이 제대로 올라가겠지...?
 
 0. 너무 low resource 라서... 근데 그냥 아는 알고리즘들로 해보자
 - Revisiting Low-Resource Neural Machine Translation:A Case Study
