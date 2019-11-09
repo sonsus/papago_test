@@ -21,7 +21,7 @@ from pprint import pprint
 
 from pdb import set_trace
 
-def get_trainer(args, model_, loss_fn, optimizer):
+def get_trainer(args, model_, loss_fn, optimizer, scheduler=None):
     def update_model(trainer, batch):
         model_.train()
         args._training =  model_.training
@@ -40,7 +40,6 @@ def get_trainer(args, model_, loss_fn, optimizer):
         if args.model in ['seq2seq', 'rnnsearch']:
             nn.utils.clip_grad_norm_(model_.parameters(), 1) # clip gradient
         optimizer.step()
-
         return y_pred.detach(), batch.trg
 
     trainer = Engine(update_model)
@@ -65,12 +64,13 @@ def runtrain(args):
         model_ = get_model(args)
         optimizer = get_optims(args, model_)
 
-    loss_fn = get_loss(ignore_index=PAD_TOKEN)
+    loss_fn = get_loss(ignore_index=PAD_TOKEN, smooth=args.label_smoothing)
+    scheduler = None
 
     if args.lrschedule=='rop':
         scheduler = get_scheduler(args, optimizer)
 
-    trainer = get_trainer(args, model_, loss_fn, optimizer)
+    trainer = get_trainer(args, model_, loss_fn, optimizer, scheduler=scheduler)
     evaluator = get_eval(args, model_, loss_fn)
     logger = get_logger(args)
 
@@ -93,7 +93,13 @@ def runtrain(args):
         evalstate = runeval(evaluator, its['val'])
         log_results(logger, 'val/epoch', evaluator.state, engine.state.epoch)
 
+        if scheduler is not None:
+            scheduler.step(evalstate.metrics['loss'])
         print(f"epoch: {engine.state.epoch}  completed")
+        print(f"trg: {engine.state.output[1]}")
+        print(f"teacher: {engine.state.output[0].argmax(dim=1)}")
+
+        print(f"trg_eval: {evaluator.state.output['trg_idx']}")
         print(f"greedy: {evaluator.state.output['infer']['greedy']['sentidxs'][0]}")
         print(f"beam: {evaluator.state.output['infer']['beam']['sentidxs'][0]}")
 

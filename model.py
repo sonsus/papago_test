@@ -58,18 +58,27 @@ class Decoder(nn.Module):
             bsz, srclen, hid2 = list(enc_outputs.shape)
             hid = hid2//2
             maxlen = int(srclen*1.5)
-        else:
+        else: # would not be visited
             _, bsz, hid = list(hidden.shape)
+
 
         output = SOS_TOKEN*torch.ones(bsz).long().to(self.args.device).unsqueeze(1)
         genidxs = PAD_TOKEN*torch.ones(bsz, maxlen).long().to(self.args.device)
+
+        p_trglen = expected_len_trg(srclen)
         for t in range(maxlen):
             #self.rnn == decoder's rnn
             output, hidden = self.forward(output, hidden, enc_outputs=enc_outputs)
+            if t!=0 and t+1<p_trglen and self.args.heu_penalty<0:
+                output = discourage_specials(output.squeeze(),
+                                            dim=1,
+                                            penalty=self.args.heu_penalty*(p_trglen-t+1)) #bsz
+
             output = output.squeeze().argmax(dim=1)
             genidxs[:, t] = output
+
             output= output.unsqueeze(1) # bsz, 1
-            if (genidxs[:, t]==PAD_TOKEN).all():
+            if (genidxs[:, t]==PAD_TOKEN).all() or (genidxs[:, t]==EOS_TOKEN).all():
                 genidxs = genidxs[:,:t+1]
                 break
 
@@ -99,12 +108,17 @@ class Decoder(nn.Module):
 
         batch_idx = list(range(bsz))
         remainingsents = bsz
+        p_trglen = expected_len_trg(srclen)
 
         for i in range(maxlen):
             ins = torch.stack([b.get_current_state() for b in beams if not b.done]).view(-1, 1) # remaining, beam  --> remaining*beam , 1
             out, hidden = self.forward(ins, hidden, enc_outputs=enc_outputs) #remaining*beam, 1, hid / 1, remaining*beam, hid
 
+            if i!=0 and i+1<p_trglen and self.args.heu_penalty<0:
+                out = discourage_specials(out.squeeze(),dim=1,penalty=self.args.heu_penalty*(p_trglen-i+1)) #bsz
+
             wordlk=out.view(remainingsents, beamsize, -1)
+
             active = []
             for b in range(bsz):
                 if beams[b].done:
@@ -140,7 +154,7 @@ class Decoder(nn.Module):
             #trg_h = update_active(trg_h) # [1, beam*bsz, hid]
             #if len(active_idx) < batchsize:
             #    set_trace()
-            if enc_outputs is not None:
+            if self.args.model is 'rnnsearch':
                 enc_outputs = update_active(enc_outputs)
 
             remainingsents = len(active)
@@ -181,7 +195,7 @@ class RNNEnc(nn.Module):
         hidden_size = x.shape[-1]
         h0 = torch.zeros(1, batchsize, hidden_size).to(self.args.device) # bidrectional 2
         enc_outputs, hn = self.rnn(x, h0)
-        return None, hn
+        return enc_outputs, hn
 
 class RNNDec(Decoder):
     def __init__(self, args, vocabsize, hid, emb, **kwargs):
@@ -194,6 +208,7 @@ class RNNDec(Decoder):
 
 
     def forward(self, trg, hn, enc_outputs=None):
+        #nothing happens if enc_outputs goes into here...
         x = self.dropout(self.emb(trg)) # bsz, 1, hid
         batchsize = trg.shape[0]
         hidden_size = hn.shape[-1]

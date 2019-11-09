@@ -4,3 +4,4 @@
 ./__pycache__/**
 
 log/DBG/**
+trained_models/**

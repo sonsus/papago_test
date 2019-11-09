@@ -1,5 +1,15 @@
 import jsonlines as jsl
 import math
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+matplotlib.style.use('ggplot')
+import seaborn as sns
+import pandas as pd
+import scipy
+
+
+
 from pdb import set_trace
 
 src_lens = []
@@ -9,6 +19,11 @@ def std(lens):
     mean = sum(lens)/len(lens)
     return math.sqrt(sum([ (s-mean)**2 for s in lens])/len(lens))
 
+def get_regfx(p):
+    slope, intercept, r_value, p_value, std_err = \
+            scipy.stats.linregress(x=p.get_lines()[0].get_xdata(),
+                                    y=p.get_lines()[0].get_ydata())
+    return f"y={slope:.3f}x+{intercept:.3f}, R={r_value:.3f}"
 
 for n in ['train', 'val', 'test']:
     with jsl.open(n+".jsonl") as reader:
@@ -25,11 +40,16 @@ for n in ['train', 'val', 'test']:
     std_src = sum([ (s-sum(src_lens)/len(src_lens))**2 for s in src_lens])
     print(f"std: {std(src_lens), std(trg_lens)}")
 
+    df = pd.DataFrame(list(zip(src_lens, trg_lens)), columns = ['l_src', 'l_trg'])
+    figure = sns.regplot(x=df['l_src'], y=df['l_trg'])
+    figure.text(20, 40, get_regfx(figure), horizontalalignment='left', size='medium', color='black', weight='semibold')
+    figure.text(20, 60 if n!='val' else 50, n, horizontalalignment='center', size='medium', color='black', weight='semibold')
+
+    figure = figure.get_figure()
+    figure.savefig(f"{n}_length_corr.png")
+    figure.clf()
     src_lens = []
     trg_lens = []
-    set_trace()
-
-
 
 
 '''

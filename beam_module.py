@@ -1,13 +1,13 @@
 ###modified from https://github.com/MaximumEntropy/Seq2Seq-PyTorch/blob/master/beam_search.py
 ### which also being originated from openNMT implementation
 
-
-#teletype test
 """Decode Seq2Seq model with beam search."""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pdb import set_trace
 
+from utils import *
 from config import *
 
 

@@ -37,8 +37,8 @@ def log_results(logger, name, state, step):
 
 def log_lr(logger, name, optimizer, ep):
     lr=0;
-    for param_group in optimizer.param_groups:
-        lr= param_group['lr']
+    for p in optimizer.param_groups:
+        lr= p['lr']
         break
 
     logger(f"{name}", lr, ep)

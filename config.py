@@ -18,8 +18,8 @@ config = {
 
     ##checkpoint loading / saving
     'ckpt_path': 'trained_models/',
-    'save_every': 4,  #epochs, int
-
+    'save_every': 2,  #epochs, int
+    'heu_penalty': -0.1,
 
     ##hyperparams
     'batchsize': 128,
@@ -34,12 +34,12 @@ config = {
     'optimizer': 'adam', #now just for exp naming
     #'lr_decay': 0,
 
-    'lrschedule': 'rop', #noam
+    'lrschedule': 'rop', #step, linear
     #reduce on plateau
     'factor': 0.5,
-    'patience': 2,
+    'patience': 1,
     'mode': 'min',
-    'threshold':5e-4,
+    'threshold':1e-2,
     'threshold_mode': 'rel',
     'min_lr':1e-7,
     'eps':1e-8,
@@ -49,7 +49,7 @@ config = {
     'lr_tr': 0, #this lr is learning rate for NoamOpt.
 
     ###--modelwise args--###
-    #'label_smoothing': 0.1,
+    'label_smoothing': 0.1,
     'hidden_size': 256,
 
 

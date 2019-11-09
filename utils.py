@@ -3,9 +3,26 @@ from datetime import datetime
 import torch
 import torch.nn.functional as F
 from contextlib import contextmanager
-#from copy import deepcopy
+from pathlib import Path
+
 from config import *
 from pdb import set_trace
+
+
+def discourage_specials(tensor, dim=None, penalty=-100):#use this for augmenting decoder
+    # length proportional penalty?
+    # lower PAD, SOS, EOS prob
+    t_penalty = torch.ones_like(tensor)*penalty
+    out = tensor.unbind(dim=dim)[0] # to make bsz tensor
+    discourageidx = torch.ones_like(out).long().unsqueeze(1) #bsz
+    for i in [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN]:
+        tensor.scatter_add_(dim, i*discourageidx, t_penalty)
+
+    return tensor
+
+def expected_len_trg(src_len):
+    return int(0.551*src_len-0.406)
+
 
 def word_drop(args, batch):
     if args.word_drop>0:
@@ -51,12 +68,13 @@ def prep_batch(args, batch):
     return batch
 
 def get_dirname_from_args(args):
-    tb_logname = f"{args.model}_optim_{args.optimizer}_{args.learning_rate}_ep{args.max_epochs}"
+    tb_logname = f"{args.model}_{args.optimizer}_ep{args.max_epochs}_labelsmooth{args.label_smoothing}"
     if args.lrschedule=='reducelronplateau':
-        tb_logname += f"ROP{args.gamma}_{args.mode}_{args.threshold}"
-    elif args.lrschedule=='noamscheduler':
+        tb_logname += f"_{args.learning_rate}_ROP{args.gamma}_{args.mode}_{args.threshold}"
+    elif args.lrschedule=='noamscheduler': #doesn't work for some reason..
         tb_logname +=f"NOAM{args.warmup}_{args.factor}_{args.hidden}"
-
+    #elif args.lrschedule=='linear':
+    #    tb_logname +=f"Lin_start{args.learning_rate}_end{args.endlr}_fromstep{args.start_step}"
     return tb_logname
 
 
@@ -111,7 +129,7 @@ def log_time_n_args(args):
     s = time()-start
     m = s/60
     h = m/60
-    with (args.log_path / f"{get_dirname_from_args(args)}.time").open(mode = 'w') as f:
+    with (Path(args.log_path) / f"{get_dirname_from_args(args)}.time").open(mode = 'w') as f:
         f.write(f"spent {str(h)[:4]} hrs!\n")
         f.write(f"=spent {str(m)[:4]} mins!\n")
         f.write(f"=spent {str(s)[:4]} secs!\n")
