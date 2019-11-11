@@ -4,9 +4,9 @@
 ## A. 요약
 - 결과: RNNSearch 모델 greedy decoding BLEU-1 16.75, 18.08 모델을 업로드(pth)
     - 실제 어떻게 트레이닝 됐는지는 확실하지 않음 (보통 생성된 자연어를 최종점검하는데 이건 볼 수가 없어서...) 
-![](loss)
-![](bleu1_greedy)
-![](length_diff2)
+    - ![](loss.svg){: style="width:30px"}
+    - ![](bleu1greed.svg){: style="width:100px"}
+    - ![](lengthdiff_greed.svg){: style="width:30px"}
 
 - label smoothing, beamsearch, word_drop 등을 사용해보았지만 모델구조 차이를 넘어서는 효과를 주지는 못했다 seq2seq(GRU1layer) => rnnsearch(BiGRU1layer, GRU1layer)
 - translation 사용자 데이터라 가정, 언어는 미상 => **BLEU-k, METEOR, CIDEr, ROUGE-L** 을 사용하기로
