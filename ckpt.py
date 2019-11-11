@@ -57,13 +57,14 @@ def find_loss(ckpt_file):
 #works great
 def get_model_ckpt(args):
 
-    fname_pattern = get_ckpt_path(args, args.pretrained_ep, cut_loss=True)
+    fname_pattern = args.load_path+"/*"#get_ckpt_path(args, args.pretrained_ep, cut_loss=True)
     ckpt_paths = sorted(Path().glob(f'{fname_pattern}'), key=find_loss )# min loss loaded
 
     assert len(ckpt_paths) > 0, f"no ckpt candidate for {str(Path().glob(f'{fname_pattern}'))}"
 
     ckpt_path = ckpt_paths[0]  # monkey patch for choosing the best ckpt
-
+    if load_path[-4:] == ".pth":
+        ckpt_path = args.load_path
     print(f"\ncheckpoint loaded from {ckpt_path}")
     dt = torch.load(ckpt_path, pickle_module=dill)
     args.update(dt['args'])

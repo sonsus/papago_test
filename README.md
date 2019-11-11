@@ -18,9 +18,9 @@
 
 ## 3. to-do
 * [X] seq2seq
-* [ ] **debug rnnsearch**
-* [ ] metrics.py:
-    - * [ ] **length measure**
+* [X] rnnsearch
+* [X] metrics.py:
+    - * [X] length measure l2(trg, decoded)
     - * [X] pycocoevalcap 붙임
     - * [X] stats of trg, src -> data/len.py 에 주석 + 그리고 png파일로 그려놓음
 * [X] beamsearch: @MaximumEntropy 에게서 가져와서 고쳐씀
@@ -73,12 +73,13 @@ nvidia-smi
 +-----------------------------------------------------------------------------+
 
 
-# 1.write2u
-write2u 환경 설치 #pytorch 1.2, torchtext 0.4.0
 
-# 2.conda forge
+# 1.conda forge
 conda config --add channels conda-forge
 conda config --set channel_priority strict
+
+# 2.write2u
+write2u 환경 설치 #pytorch 1.2, torchtext 0.4.0
 
 # 3.if need to run data/len.py
 conda install matplotlib seaborn pandas

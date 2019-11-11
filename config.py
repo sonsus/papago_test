@@ -10,7 +10,7 @@ config = {
 
     'debug': False,
     ##general
-    'model': "seq2seq", #"transformer", "transformer"
+    'model': "rnnsearch", #"seq2seq", "transformer"
     'dataroot': 'data',
     'max_epochs': 50,
     'pretrained_ep': -1,
@@ -18,8 +18,10 @@ config = {
 
     ##checkpoint loading / saving
     'ckpt_path': 'trained_models/',
+    'load_path': 'none',
     'save_every': 2,  #epochs, int
     'heu_penalty': -0.1,
+    'teacher_forcing_ratio': 0.7,
 
     ##hyperparams
     'batchsize': 128,

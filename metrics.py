@@ -11,7 +11,7 @@ from ignite.metrics.metric import Metric
 from ignite.exceptions import NotComputableError
 
 from utils import to_string, to_string2, make_fake_vocab
-
+from config import *
 
 import torch
 from ignite.metrics.metric import Metric
@@ -74,3 +74,47 @@ class Ngram(Metric):
                 'Loss must have at least one example before it can be computed.')
         return {k: v * 100 / self._num_ex for k, v in self._data.items()}
     # *100 for bleu, rouge score percentages
+
+
+class Ldiff_Square(Metric):
+    def __init__(self, args, output_transform=lambda x:x):
+         super().__init__(output_transform)
+         self.args = args
+         self._measure = {
+            "lendiff2sum": 0
+         }
+         self._num_ex =0
+
+    def reset(self):
+        self._measure = {
+            "lendiff2sum": 0
+        }
+        self._num_ex = 0
+
+    def reformat(self, x):
+        if self.args.beamsize==1 or self.args._training or type(x)!= type([]):
+            return x
+
+        else:
+            return torch.cat(x, 1)#list of tensors [1, len ]
+
+    def get_len(self, x):
+        mask = (x!=PAD_TOKEN) & (x!=SOS_TOKEN) & (x!=EOS_TOKEN)
+        mask = mask.long()
+        lens = mask.sum(dim=1)
+        return lens
+
+    def update(self, output):
+        decoded, trg = output
+
+        num_ex = len(trg)
+        decoded = self.reformat(decoded)
+        d_lens = self.get_len(decoded)
+        trg_lens = self.get_len(trg)
+        lendiff2 = ((d_lens-trg_lens)**2).sum()
+        self._measure['lendiff2sum']+=lendiff2
+        self._num_ex+= num_ex
+
+
+    def compute(self):
+        return self._measure["lendiff2sum"]/self._num_ex

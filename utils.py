@@ -30,6 +30,9 @@ def word_drop(args, batch):
         len_s = batch.src.shape[1]
         len_t = batch.trg.shape[1]
 
+        #0 is a normal token in this dataset.
+        keepzero_s = 777*(batch.src==0).long()
+        keepzero_t = 777*(batch.trg==0).long() #777 later be converted back to be 0's
 
         batch.src = batch.src.float()
         batch.trg = batch.trg.float()
@@ -43,6 +46,19 @@ def word_drop(args, batch):
             batch.src[i,:s] = F.dropout(batch.src[i,:s], p=modif_rate_s) * (1-modif_rate_s )
             batch.trg[i,:t] = F.dropout(batch.trg[i,:t], p=modif_rate_t) * (1-modif_rate_t )
 
+        # dropped out parts should be ignored == PAD_TOKEN
+        dropped_s = PAD_TOKEN*(batch.src==0).float()
+        dropped_t = PAD_TOKEN*(batch.trg==0).float()
+        batch.src = batch.src+dropped_s
+        batch.trg = batch.trg+dropped_t
+
+        # reconvert 777 to 0
+        s777 = -777*(batch.src==777).float()
+        t777 = -777*(batch.trg==777).float()
+        batch.src = batch.src + s777
+        batch.src = batch.trg + t777
+
+        #float to long
         batch.src= batch.src.long()
         batch.trg= batch.trg.long()
 
@@ -60,11 +76,9 @@ def get_now():
 def prep_batch(args, batch):
     batch.src.t_()
     batch.trg.t_()
-    #batch_oldsrc = batch.src.clone()
-    #batch_oldtrg = batch.trg.clone()
+
     batch = word_drop(args, batch)
-    #print( (batch_oldsrc!=batch.src).sum().float()/float(batch.src.numel()) )
-    #print( (batch_oldtrg!=batch.trg).sum().float()/float(batch.trg.numel()) )
+
     return batch
 
 def get_dirname_from_args(args):

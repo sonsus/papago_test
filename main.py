@@ -44,7 +44,7 @@ class Main:
 
     def eval(self, **kwargs):
         args = self._default_args(**kwargs)
-        runeval(args)
+        only_eval(args)
 
 
 def resolve_paths(args):

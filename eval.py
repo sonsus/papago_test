@@ -2,7 +2,7 @@ import torch
 from ignite.engine.engine import Engine, State, Events
 from ignite.metrics import Loss
 
-from metrics import Ngram
+from metrics import Ngram, Ldiff_Square
 from utils import *
 
 ### nlg ngram evaluation, loss engine
@@ -19,8 +19,7 @@ def get_eval(args, model, loss_fn):
                 results = model.inference(batch.src, beamsize= args.beamsize)
 
             elif args.model == 'transformers':
-                y_pred = model(batch.src, batch.trg, tgt_mask=trg_mask)
-                results  = model.inference(batch.src, merged_hs, merged_mask=merged_mask) # beamsearch not implemented
+                pass
 
             else:
                 """not impl"""
@@ -40,6 +39,8 @@ def get_eval(args, model, loss_fn):
         'loss': Loss(loss_fn, output_transform=lambda x: (x['y_pred'], x['trg_idx']) ),
         'ngrams_greed': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x['infer']['greedy']['sentidxs'], x['trg_idx'])  ),
         'ngrams_beam': Ngram(args, make_fake_vocab(), output_transform=lambda x:(x['infer']['beam']['sentidxs'], x['trg_idx'])  ),
+        'length_greed': Ldiff_Square(args, output_transform=lambda x:(x['infer']['greedy']['sentidxs'], x['trg_idx'])  ),
+        'length_beam': Ldiff_Square(args, output_transform=lambda x:(x['infer']['beam']['sentidxs'], x['trg_idx'])  ),
         }
     for name, metric in metrics_g.items():
         metric.attach(engine_g, name)
@@ -51,3 +52,12 @@ def get_eval(args, model, loss_fn):
 def runeval(evaluator, iterator):
     evaluator.run(iterator)
     return evaluator.state
+
+def only_eval(args):
+    if args.pretrained_ep>=1:
+        saved_dict = get_model_ckpt(args)
+        its= saved_dict['its']
+        model_ = saved_dict['model']
+    else:
+        print(f"need to specify args.pretrained_ep (e.g. for ep 7 model,)")
+        print(f"python main.py --pretrained_ep 7 --model rnnsearch")
