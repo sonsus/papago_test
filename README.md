@@ -28,12 +28,12 @@
 * [X] label_smoothing
 * [X] decoding heuristic
     - * [X] no EOS, PAD, SOS until likely end length (trglen ~= 0.552srclen - 0.406)
-* [ ] Transformer **일단 쓰던 코드로** 써보자...
-    - * [ ] beam search with heuristic for Transformer  
-    - * [ ] greedy with heuristic **어차피 이건 나도 써야할 코드라 작성해야함**
+* ~~[ ] Transformer **일단 쓰던 코드로** 써보자...~~
+    ~~- * [ ] beam search with heuristic for Transformer ~~
+    ~~- * [ ] greedy with heuristic **어차피 이건 나도 써야할 코드라 작성해야함**~~
 
-* [ ] main.py: eval routine
-* [ ] set-up guide!
+* ~~[ ] main.py: eval routine~~
+* [X] set-up guide!
 
 
 ## 4. 진척
@@ -45,7 +45,6 @@
 - 하지만 작성하지 못하면 완료를 못하는건 맞음
 
 ## 5. 환경 정리
-
 ```bash
 nvidia-smi
 ##CUDA 10.1, Driver 435.21, TitanXp
@@ -74,14 +73,19 @@ nvidia-smi
 
 
 
+# 0. git clone
+git clone https://github.com/sonsus/papago_test
+
 # 1.conda forge
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 
-# 2.write2u
-write2u 환경 설치 #pytorch 1.2, torchtext 0.4.0
+# 2.conda 환경구성
+conda env create -f environment.yml
 
 # 3.if need to run data/len.py
 conda install matplotlib seaborn pandas
+
+
 
 ```
