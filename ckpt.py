@@ -57,13 +57,17 @@ def find_loss(ckpt_file):
 #works great
 def get_model_ckpt(args):
 
-    fname_pattern = args.load_path+"/*"#get_ckpt_path(args, args.pretrained_ep, cut_loss=True)
-    ckpt_paths = sorted(Path().glob(f'{fname_pattern}'), key=find_loss )# min loss loaded
+    fname_pattern = str(args.load_path)#get_ckpt_path(args, args.pretrained_ep, cut_loss=True)
 
-    assert len(ckpt_paths) > 0, f"no ckpt candidate for {str(Path().glob(f'{fname_pattern}'))}"
+    if str(fname_pattern[-4:]) =='.pth':
+        ckpt_paths = [fname_pattern]
+    else:
+        ckpt_paths = sorted(Path().glob(f'{fname_pattern}/*'), key=find_loss )# min loss loaded
+
+    assert len(ckpt_paths) > 0, f"no ckpt candidate at {str(Path())}/{fname_pattern}/"
 
     ckpt_path = ckpt_paths[0]  # monkey patch for choosing the best ckpt
-    if load_path[-4:] == ".pth":
+    if str(args.load_path)[-4:] == ".pth":
         ckpt_path = args.load_path
     print(f"\ncheckpoint loaded from {ckpt_path}")
     dt = torch.load(ckpt_path, pickle_module=dill)
@@ -73,10 +77,10 @@ def get_model_ckpt(args):
     vocab = dt['vocab']
 
     its = load_data(args)
-    model = get_model(args, vocab)
+    model = get_model(args)
     model.load_state_dict(dt['model'])
     optimizer = get_optims(args, model)
-    optimizer.load_state_dict(dt['optim_states'])
+    optimizer.load_state_dict(dt['optimizer'])
 
     dt['its'] = its
     dt['optimizer'] = optimizer

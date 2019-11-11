@@ -7,7 +7,7 @@ from pprint import pprint
 from fire import Fire
 
 from train import runtrain
-from eval import runeval
+from eval import runeval, only_eval
 
 
 from pdb import set_trace

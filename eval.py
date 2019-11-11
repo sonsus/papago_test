@@ -1,9 +1,12 @@
 import torch
 from ignite.engine.engine import Engine, State, Events
 from ignite.metrics import Loss
+from pprint import pprint
 
+from ckpt import *
 from metrics import Ngram, Ldiff_Square
 from utils import *
+from losses import get_loss
 
 ### nlg ngram evaluation, loss engine
 def get_eval(args, model, loss_fn):
@@ -54,10 +57,40 @@ def runeval(evaluator, iterator):
     return evaluator.state
 
 def only_eval(args):
-    if args.pretrained_ep>=1:
+    if args.load_path is not 'none':
         saved_dict = get_model_ckpt(args)
         its= saved_dict['its']
         model_ = saved_dict['model']
+
+        loss_fn = get_loss(ignore_index=PAD_TOKEN, smooth=args.label_smoothing)
+        scheduler = None
+        evaluator = get_eval(args, model_, loss_fn)
+
+        @evaluator.on(Events.STARTED)
+        def on_eval_start(engine):
+            pprint(args)
+            pprint(args.model)
+            pprint(args.load_path)
+        @evaluator.on(Events.EPOCH_COMPLETED)
+        def after_an_epoch(engine):
+            def results(spl, state):
+                for key, val in state.metrics.items():
+                    if isinstance(val, dict):
+                        for key2, v in val.items():
+                            print(f"{spl}/{key}/{key2}: {v}" )
+                    else:
+                        print(f"{name}/{key}" , val)
+            #printout all metrics
+            results('test', engine.state)
+            print(f"trg_eval: {engine.state.output['trg_idx'][0]}")
+            print(f"greedy: {engine.state.output['infer']['greedy']['sentidxs'][0]}")
+            print(f"beam: {engine.state.output['infer']['beam']['sentidxs'][0]}")
+
+        evaluator.run(its['val'] if args.debug else its['test'],
+                    max_epochs=1)
+
+
     else:
-        print(f"need to specify args.pretrained_ep (e.g. for ep 7 model,)")
-        print(f"python main.py --pretrained_ep 7 --model rnnsearch")
+        print(f"need to specify args.load_path (e.g. .pth file or pth containing dir )")
+        print(f"python main.py --load_path trained_models/rnnsearch/rnnsearch_adam_ep100_labelsmooth0.2_d1111_t2037/")
+        print(f"if specify dir, it will load the lowest loss model.")

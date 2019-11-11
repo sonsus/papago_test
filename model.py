@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import Transformer, TransformerEncoder, TransformerDecoder, TransformerEncoderLayer, TransformerDecoderLayer
 import torch.nn.functional as F
 import random
 
