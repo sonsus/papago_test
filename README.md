@@ -2,11 +2,9 @@
 * [X] git config 바꿨으니까 이제 이름이 제대로 올라가겠지...?
 
 ## A. 요약
-- 결과: RNNSearch 모델 greedy decoding BLEU-1 16.75, 18.08 모델을 업로드(pth)
+- 결과: RNNSearch 모델 greedy decoding BLEU-1 16.58 모델을 업로드(zip)
     - 실제 어떻게 트레이닝 됐는지는 확실하지 않음 (보통 생성된 자연어를 최종점검하는데 이건 볼 수가 없어서...) 
-    - ![](loss.svg){: style="width:30px"}
-    - ![](bleu1greed.svg){: style="width:100px"}
-    - ![](lengthdiff_greed.svg){: style="width:30px"}
+    - ![](pic1.png)
 
 - label smoothing, beamsearch, word_drop 등을 사용해보았지만 모델구조 차이를 넘어서는 효과를 주지는 못했다 seq2seq(GRU1layer) => rnnsearch(BiGRU1layer, GRU1layer)
 - translation 사용자 데이터라 가정, 언어는 미상 => **BLEU-k, METEOR, CIDEr, ROUGE-L** 을 사용하기로
@@ -15,18 +13,19 @@
     - Revisiting Low-Resource Neural Machine Translation:A Case Study에서 보기에는 supervised setting도 튜닝하기 따라 성능이 어느정도 나오는것 보고된 바 있음.
 - vocab을 만들어줘야하는데... 다 실험하고 생각해보니, counting base로 하지 않았다... 왜일까 (vocab threshold =1)  
     - TOKEN: max = 658, min=0 
-    - SPECIAL TOKENS: 659, 660, 661 (각각 SOS, EOS, PAD)
+    - SPECIAL TOKENS: 659, 660, 661 (각각 SOS, EOS-끝 명시, PAD)
 - src와 trg의 길이는 생각보다 일관성 있었다: 나중에 greedy decoding length heuristic으로 추가
 ![](data/train_length_corr.png)
 ![](data/val_length_corr.png)
 ![](data/test_length_corr.png)
 
 - label smoothing 값이나 decoding length heuristic을 추가 제거하여 실험해보았지만 기대한 것과 달리 큰 변화는 관찰되지 않았다.
-    - 다른 hyperparameter들과 결과론적으로 독립적이진 않은 것 같아서 무효함이 확실하진 않다 (lr=0.5, 0.3, rnnsearch model, ReduceOnPlateu, word_drop =0.1, decoding length heuristic penalty =0.1 조건에서 실험했으나 이게 최적 조건이 아니었기도 하고)
+    - 다른 hyperparameter들과 결과론적으로 독립적이진 않은 것 같아서 무효함이 확실하진 않다 (lr=0.5, 0.3, rnnsearch model, ReduceOnPlateu, word_drop =0.1, decoding length heuristic penalty=0.1 조건에서 실험했으나 이게 최적 조건이 아니었기도 하고)
 
 
 
 ## 0. 너무 low resource 라서... 근데 그냥 아는 알고리즘들로 해보자
+- 모델 3 개나 해보려던건 욕심이었다 (Transformer 취소).
 - Revisiting Low-Resource Neural Machine Translation:A Case Study
 - 에서는 hyper parameter tuning의 효과랑 label smoothing 효과를 봤다더라
     (... 처음에 아는 알고리즘들에 이것저것 붙여서 결과뽑자고 너무 쉽게 생각했다)
@@ -56,7 +55,6 @@
 * ~~[ ] Transformer **일단 쓰던 코드로** 써보자...~~
     ~~- * [ ] beam search with heuristic for Transformer ~~
     ~~- * [ ] greedy with heuristic **어차피 이건 나도 써야할 코드라 작성해야함**~~
-
 * ~~[ ] main.py: eval routine~~
 * [X] set-up guide!
 
