@@ -99,7 +99,7 @@ def runtrain(args):
         print(f"trg: {engine.state.output[1]}")
         print(f"teacher: {engine.state.output[0].argmax(dim=1)}")
 
-        print(f"trg_eval: {evaluator.state.output['trg_idx']}")
+        print(f"trg_eval: {evaluator.state.output['trg_idx'][0]}")
         print(f"greedy: {evaluator.state.output['infer']['greedy']['sentidxs'][0]}")
         print(f"beam: {evaluator.state.output['infer']['beam']['sentidxs'][0]}")
 

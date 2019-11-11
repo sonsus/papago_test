@@ -20,7 +20,7 @@ config = {
     'ckpt_path': 'trained_models/',
     'load_path': 'none',
     'save_every': 2,  #epochs, int
-    'heu_penalty': -0.1,
+    'heu_penalty': 0,#-0.1,
     'teacher_forcing_ratio': 0.7,
 
     ##hyperparams
